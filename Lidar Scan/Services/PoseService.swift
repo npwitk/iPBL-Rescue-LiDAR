@@ -47,21 +47,23 @@ class PoseService: NSObject, ObservableObject {
     
     private func updateThermalState() {
         let thermalState = ProcessInfo.processInfo.thermalState
-        isDeviceOverheated = thermalState == .serious || thermalState == .critical
+        isDeviceOverheated = thermalState == .critical // Only stop at critical, not serious
         
-        // Adjust processing rate based on thermal state
+        // Adjust processing rate based on thermal state - keep higher rates for better detection
         switch thermalState {
         case .nominal:
-            frameProcessingRate = 15.0
+            frameProcessingRate = 20.0
         case .fair:
-            frameProcessingRate = 10.0
-        case .serious:
-            frameProcessingRate = 5.0
-        case .critical:
-            frameProcessingRate = 2.0
-        @unknown default:
             frameProcessingRate = 15.0
+        case .serious:
+            frameProcessingRate = 10.0
+        case .critical:
+            frameProcessingRate = 5.0
+        @unknown default:
+            frameProcessingRate = 20.0
         }
+        
+        print("🌡️ Thermal state: \(thermalState), frame rate: \(frameProcessingRate) fps")
     }
     
     func processFrame(_ frame: ARFrame, in arView: ARView) {
@@ -110,7 +112,9 @@ class PoseService: NSObject, ObservableObject {
     
     private func processPoseResults(_ results: [VNHumanBodyPoseObservation], frame: ARFrame, arView: ARView, viewportSize: CGSize) {
         for observation in results {
-            guard observation.confidence > 0.3 else { continue }
+            guard observation.confidence > 0.2 else { continue } // Lower threshold for better detection
+            
+            print("Person detected with confidence: \(observation.confidence)")
             
             // Extract pose joints
             let pose = extractPose(from: observation)

@@ -14,7 +14,7 @@ class PinTracker: ObservableObject {
     
     private weak var arMapper: ARMapper?
     private weak var appState: AppState?
-    private let proximityThreshold: Float = 1.0 // meters
+    private let proximityThreshold: Float = 0.8 // meters - reduced for better clustering
     private let confidenceDecayRate: Float = 0.95
     private let maxPinAge: TimeInterval = 30.0
     
@@ -34,8 +34,11 @@ class PinTracker: ObservableObject {
     func processDetection(_ detection: PersonDetection, frame: ARFrame, arView: ARView) {
         // Raycast to get 3D world position
         guard let worldPosition = arMapper?.raycast(from: detection.screenPoint) else {
+            print("Failed to raycast detection at screen point: \(detection.screenPoint)")
             return
         }
+        
+        print("Raycast successful: \(worldPosition)")
         
         // Create detection with world position
         let detectionWithWorld = PersonDetection(
@@ -48,8 +51,10 @@ class PinTracker: ObservableObject {
         
         // Find nearby existing pin or create new one
         if let existingPin = findNearbyPin(worldPosition: worldPosition) {
+            print("Adding to existing pin: \(existingPin.id)")
             updateExistingPin(existingPin, with: detectionWithWorld)
         } else {
+            print("Creating new pin at position: \(worldPosition)")
             createNewPin(from: detectionWithWorld)
         }
         

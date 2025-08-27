@@ -158,7 +158,7 @@ struct LiDAR3DMapView: UIViewRepresentable {
     
     private func setupCamera(_ scnView: SCNView) {
         let camera = SCNCamera()
-        camera.fieldOfView = 60
+        camera.fieldOfView = 80
         camera.automaticallyAdjustsZRange = true
         
         let cameraNode = SCNNode()
@@ -200,7 +200,7 @@ struct LiDAR3DMapView: UIViewRepresentable {
                 
                 // Material
                 let material = SCNMaterial()
-                material.diffuse.contents = UIColor.systemRed.withAlphaComponent(0.3)
+                material.diffuse.contents = UIColor.systemBlue.withAlphaComponent(0.5)
                 material.transparency = 1
                 material.cullMode = .back
                 material.isDoubleSided = true
@@ -349,35 +349,92 @@ struct LiDAR3DMapView: UIViewRepresentable {
     }
     
     private func createPersonIconNode(color: UIColor, size: CGFloat) -> SCNNode {
-        // Create a simple person icon using basic shapes
+        // Create a detailed human figure
         let parentNode = SCNNode()
         
-        // Head (sphere)
-        let headRadius = size * 0.25
+        // Create materials
+        let skinMaterial = SCNMaterial()
+        skinMaterial.diffuse.contents = UIColor.systemPink.withAlphaComponent(0.9)
+        skinMaterial.emission.contents = UIColor.systemPink.withAlphaComponent(0.1)
+        
+        let clothingMaterial = SCNMaterial()
+        clothingMaterial.diffuse.contents = color
+        clothingMaterial.emission.contents = color.withAlphaComponent(0.2)
+        clothingMaterial.specular.contents = UIColor.white.withAlphaComponent(0.3)
+        
+        // Scale factors
+        let headRadius = size * 0.12
+        let torsoWidth = size * 0.15
+        let torsoHeight = size * 0.35
+        let armLength = size * 0.25
+        let armRadius = size * 0.04
+        let legLength = size * 0.3
+        let legRadius = size * 0.05
+        
+        // HEAD
         let head = SCNSphere(radius: headRadius)
+        head.materials = [skinMaterial]
         let headNode = SCNNode(geometry: head)
-        
-        let headMaterial = SCNMaterial()
-        headMaterial.diffuse.contents = color
-        headMaterial.emission.contents = color.withAlphaComponent(0.2)
-        head.materials = [headMaterial]
-        
-        headNode.position.y = Float(size * 0.6)
+        headNode.position.y = Float(size * 0.85)
         parentNode.addChildNode(headNode)
         
-        // Body (cylinder)
-        let bodyRadius = size * 0.15
-        let bodyHeight = size * 0.5
-        let body = SCNCylinder(radius: bodyRadius, height: bodyHeight)
-        let bodyNode = SCNNode(geometry: body)
+        // TORSO
+        let torso = SCNBox(width: torsoWidth, height: torsoHeight, length: torsoWidth * 0.6, chamferRadius: 0.01)
+        torso.materials = [clothingMaterial]
+        let torsoNode = SCNNode(geometry: torso)
+        torsoNode.position.y = Float(size * 0.6)
+        parentNode.addChildNode(torsoNode)
         
-        let bodyMaterial = SCNMaterial()
-        bodyMaterial.diffuse.contents = color
-        bodyMaterial.emission.contents = color.withAlphaComponent(0.2)
-        body.materials = [bodyMaterial]
+        // LEFT ARM
+        let leftArm = SCNCylinder(radius: armRadius, height: armLength)
+        leftArm.materials = [skinMaterial]
+        let leftArmNode = SCNNode(geometry: leftArm)
+        leftArmNode.position = SCNVector3(-Float(torsoWidth * 0.6), Float(size * 0.65), 0)
+        leftArmNode.rotation = SCNVector4(0, 0, 1, Float.pi/4) // Slight angle
+        parentNode.addChildNode(leftArmNode)
         
-        bodyNode.position.y = Float(bodyHeight / 2)
-        parentNode.addChildNode(bodyNode)
+        // RIGHT ARM
+        let rightArm = SCNCylinder(radius: armRadius, height: armLength)
+        rightArm.materials = [skinMaterial]
+        let rightArmNode = SCNNode(geometry: rightArm)
+        rightArmNode.position = SCNVector3(Float(torsoWidth * 0.6), Float(size * 0.65), 0)
+        rightArmNode.rotation = SCNVector4(0, 0, 1, -Float.pi/4) // Slight angle
+        parentNode.addChildNode(rightArmNode)
+        
+        // LEFT LEG
+        let leftLeg = SCNCylinder(radius: legRadius, height: legLength)
+        leftLeg.materials = [clothingMaterial]
+        let leftLegNode = SCNNode(geometry: leftLeg)
+        leftLegNode.position = SCNVector3(-Float(torsoWidth * 0.25), Float(size * 0.25), 0)
+        parentNode.addChildNode(leftLegNode)
+        
+        // RIGHT LEG
+        let rightLeg = SCNCylinder(radius: legRadius, height: legLength)
+        rightLeg.materials = [clothingMaterial]
+        let rightLegNode = SCNNode(geometry: rightLeg)
+        rightLegNode.position = SCNVector3(Float(torsoWidth * 0.25), Float(size * 0.25), 0)
+        parentNode.addChildNode(rightLegNode)
+        
+        // FEET (small boxes)
+        let footSize = size * 0.08
+        let leftFoot = SCNBox(width: footSize * 1.5, height: footSize * 0.4, length: footSize * 2, chamferRadius: 0.01)
+        leftFoot.materials = [clothingMaterial]
+        let leftFootNode = SCNNode(geometry: leftFoot)
+        leftFootNode.position = SCNVector3(-Float(torsoWidth * 0.25), Float(size * 0.08), Float(footSize * 0.5))
+        parentNode.addChildNode(leftFootNode)
+        
+        let rightFoot = SCNBox(width: footSize * 1.5, height: footSize * 0.4, length: footSize * 2, chamferRadius: 0.01)
+        rightFoot.materials = [clothingMaterial]
+        let rightFootNode = SCNNode(geometry: rightFoot)
+        rightFootNode.position = SCNVector3(Float(torsoWidth * 0.25), Float(size * 0.08), Float(footSize * 0.5))
+        parentNode.addChildNode(rightFootNode)
+        
+        // Add subtle breathing animation
+        let breatheAction = SCNAction.repeatForever(SCNAction.sequence([
+            SCNAction.scale(to: 1.02, duration: 2.0),
+            SCNAction.scale(to: 1.0, duration: 2.0)
+        ]))
+        torsoNode.runAction(breatheAction)
         
         return parentNode
     }

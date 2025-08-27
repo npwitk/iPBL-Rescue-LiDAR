@@ -41,8 +41,12 @@ class ARMapper: NSObject, ObservableObject {
     }
     
     private func setupARConfiguration() {
+        // Just prepare the AR view, don't run the session yet
         guard let arView = arView else { return }
-        
+        arView.automaticallyConfigureSession = false
+    }
+    
+    private func createARConfiguration() -> ARWorldTrackingConfiguration {
         let configuration = ARWorldTrackingConfiguration()
         
         // Enable scene reconstruction with LiDAR if available
@@ -57,19 +61,21 @@ class ARMapper: NSObject, ObservableObject {
             configuration.frameSemantics.insert(.sceneDepth)
         }
         
+        configuration.planeDetection = [.horizontal, .vertical]
         configuration.environmentTexturing = .automatic
         configuration.isAutoFocusEnabled = true
         
-        arView.automaticallyConfigureSession = false
-        arView.session.run(configuration)
+        return configuration
     }
     
     func startSession() {
         guard let arView = arView else { return }
         
         if !isSessionRunning {
-            setupARConfiguration()
+            let configuration = createARConfiguration()
+            arView.session.run(configuration)
             isSessionRunning = true
+            print("🚀 AR Session started with scanning")
         }
     }
     
@@ -80,14 +86,36 @@ class ARMapper: NSObject, ObservableObject {
     }
     
     func raycast(from screenPoint: CGPoint) -> simd_float3? {
-        guard let arView = arView,
-              let query = arView.raycast(from: screenPoint, allowing: .existingPlaneGeometry, alignment: .any).first else {
-            return nil
+        guard let arView = arView else { return nil }
+        
+        // Try multiple raycast methods for better reliability
+        
+        // 1. First try: Existing plane geometry (most accurate)
+        if let query = arView.raycast(from: screenPoint, allowing: .existingPlaneGeometry, alignment: .any).first {
+            return simd_float3(query.worldTransform.columns.3.x,
+                              query.worldTransform.columns.3.y,
+                              query.worldTransform.columns.3.z)
         }
         
-        return simd_float3(query.worldTransform.columns.3.x,
-                          query.worldTransform.columns.3.y,
-                          query.worldTransform.columns.3.z)
+        // 2. Second try: Estimated planes (less accurate but more permissive)
+        if let query = arView.raycast(from: screenPoint, allowing: .estimatedPlane, alignment: .any).first {
+            return simd_float3(query.worldTransform.columns.3.x,
+                              query.worldTransform.columns.3.y,
+                              query.worldTransform.columns.3.z)
+        }
+        
+        // 3. Final fallback: Use camera transform with estimated depth
+        let camera = arView.session.currentFrame?.camera
+        if let camera = camera {
+            // Estimate a position 2 meters in front of camera
+            let cameraTransform = camera.transform
+            let forward = simd_float3(-cameraTransform.columns.2.x, -cameraTransform.columns.2.y, -cameraTransform.columns.2.z)
+            let cameraPosition = simd_float3(cameraTransform.columns.3.x, cameraTransform.columns.3.y, cameraTransform.columns.3.z)
+            
+            return cameraPosition + (forward * 2.0) // 2 meters forward
+        }
+        
+        return nil
     }
     
     func addAnchor(at worldPosition: simd_float3, for pin: PersonPin) {
@@ -211,7 +239,10 @@ extension ARMapper: ARSessionDelegate {
     }
     
     func sessionInterruptionEnded(_ session: ARSession) {
-        startSession()
+        // Only restart if the user had previously started the session
+        if appState?.isSessionRunning == true {
+            startSession()
+        }
     }
 }
 

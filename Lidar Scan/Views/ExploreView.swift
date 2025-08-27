@@ -29,6 +29,33 @@ struct ExploreView: View {
                 )
                 .ignoresSafeArea(.all)
                 
+                // Session Status Overlay when not running
+                if !appState.isSessionRunning {
+                    VStack {
+                        Spacer()
+                        
+                        VStack(spacing: 16) {
+                            Image(systemName: "camera.circle")
+                                .font(.system(size: 60))
+                                .foregroundColor(.white.opacity(0.6))
+                            
+                            Text("Ready to Scan")
+                                .font(.title2.bold())
+                                .foregroundColor(.white)
+                            
+                            Text("Press Start to begin scanning\nand person detection")
+                                .font(.body)
+                                .foregroundColor(.white.opacity(0.8))
+                                .multilineTextAlignment(.center)
+                        }
+                        .padding(32)
+                        .background(Color.black.opacity(0.7))
+                        .cornerRadius(20)
+                        
+                        Spacer()
+                    }
+                }
+                
                 // Overlays
                 VStack {
                     // Top Status Bar
