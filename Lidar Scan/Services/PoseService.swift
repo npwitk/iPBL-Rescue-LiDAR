@@ -76,13 +76,16 @@ class PoseService: NSObject, ObservableObject {
         
         lastProcessedTime = currentTime
         
+        // Capture viewport size on main thread
+        let viewportSize = arView.bounds.size
+        
         processingQueue.async { [weak self] in
             guard let self = self else { return }
-            self.performPoseDetection(frame: frame, arView: arView)
+            self.performPoseDetection(frame: frame, arView: arView, viewportSize: viewportSize)
         }
     }
     
-    private func performPoseDetection(frame: ARFrame, arView: ARView) {
+    private func performPoseDetection(frame: ARFrame, arView: ARView, viewportSize: CGSize) {
         let pixelBuffer = frame.capturedImage
         let imageRequestHandler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, orientation: .up)
         
@@ -94,7 +97,7 @@ class PoseService: NSObject, ObservableObject {
             try imageRequestHandler.perform([poseRequest])
             
             if let results = poseRequest.results {
-                processPoseResults(results, frame: frame, arView: arView)
+                processPoseResults(results, frame: frame, arView: arView, viewportSize: viewportSize)
             }
         } catch {
             print("Failed to perform pose detection: \(error)")
@@ -105,7 +108,7 @@ class PoseService: NSObject, ObservableObject {
         }
     }
     
-    private func processPoseResults(_ results: [VNHumanBodyPoseObservation], frame: ARFrame, arView: ARView) {
+    private func processPoseResults(_ results: [VNHumanBodyPoseObservation], frame: ARFrame, arView: ARView, viewportSize: CGSize) {
         for observation in results {
             guard observation.confidence > 0.3 else { continue }
             
@@ -113,8 +116,7 @@ class PoseService: NSObject, ObservableObject {
             let pose = extractPose(from: observation)
             let representativePoint = pose.representativeJoint
             
-            // Convert to AR view coordinates
-            let viewportSize = arView.bounds.size
+            // Convert to AR view coordinates using pre-captured viewport size
             let screenPoint = CGPoint(
                 x: representativePoint.x * viewportSize.width,
                 y: (1.0 - representativePoint.y) * viewportSize.height

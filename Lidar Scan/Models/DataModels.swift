@@ -192,7 +192,7 @@ class ScanningSession: ObservableObject {
 // MARK: - App State
 class AppState: ObservableObject {
     @Published var isSessionRunning = false
-    @Published var torchLevel: Float = 0.0
+    @Published var torchIsOn: Bool = false
     @Published var trackingState: ARCamera.TrackingState = .notAvailable
     @Published var pins: [PersonPin] = []
     @Published var selectedPinId: UUID?

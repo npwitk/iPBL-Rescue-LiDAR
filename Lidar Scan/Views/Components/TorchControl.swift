@@ -7,52 +7,42 @@ import SwiftUI
 import AVFoundation
 
 struct TorchControl: View {
-    @Binding var level: Float
+    @Binding var isOn: Bool
     @State private var hasTorch = false
     
     var body: some View {
-        VStack(spacing: 8) {
-            HStack {
-                Image(systemName: "flashlight.off.fill")
-                    .foregroundColor(.white)
+        Button(action: {
+            if hasTorch {
+                isOn.toggle()
+            }
+        }) {
+            HStack(spacing: 8) {
+                Image(systemName: isOn ? "flashlight.on.fill" : "flashlight.off.fill")
                     .font(.caption)
+                    .foregroundColor(isOn ? .yellow : .white)
                 
                 Text("Torch")
-                    .font(.caption)
+                    .font(.caption.bold())
                     .foregroundColor(.white)
                 
-                Spacer()
-                
-                Text("\(Int(level * 100))%")
-                    .font(.caption.monospacedDigit())
-                    .foregroundColor(.white)
-            }
-            
-            if hasTorch {
-                Slider(value: Binding(
-                    get: { level },
-                    set: { newValue in
-                        level = newValue
-                    }
-                ), in: 0...1)
-                .accentColor(.yellow)
-                .disabled(!hasTorch)
-            } else {
-                Text("Torch not available")
+                Text(isOn ? "ON" : "OFF")
                     .font(.caption2)
-                    .foregroundColor(.gray)
+                    .foregroundColor(isOn ? .yellow : .gray)
             }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+            .background(Color.black.opacity(0.6))
+            .cornerRadius(20)
         }
-        .padding()
-        .background(Color.black.opacity(0.6))
-        .cornerRadius(12)
+        .disabled(!hasTorch)
+        .opacity(hasTorch ? 1.0 : 0.5)
         .onAppear {
             checkTorchAvailability()
         }
     }
     
     private func checkTorchAvailability() {
-        guard let device = AVCaptureDevice.default(for: .video) else {
+        guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back) else {
             hasTorch = false
             return
         }
@@ -61,6 +51,6 @@ struct TorchControl: View {
 }
 
 #Preview {
-    TorchControl(level: .constant(0.5))
+    TorchControl(isOn: .constant(false))
         .background(Color.blue)
 }

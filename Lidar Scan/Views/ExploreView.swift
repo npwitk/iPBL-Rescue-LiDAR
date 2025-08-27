@@ -48,8 +48,7 @@ struct ExploreView: View {
                     // Bottom Controls
                     VStack(spacing: 16) {
                         // Torch Control
-                        TorchControl(level: $appState.torchLevel)
-                            .frame(maxWidth: 200)
+                        TorchControl(isOn: $appState.torchIsOn)
                         
                         // Detection Stats
                         if !appState.pins.isEmpty {
@@ -174,8 +173,8 @@ struct ARViewContainer: UIViewRepresentable {
     }
     
     func updateUIView(_ uiView: ARView, context: Context) {
-        // Update torch level
-        context.coordinator.updateTorch(level: appState.torchLevel)
+        // Update torch state
+        context.coordinator.updateTorch(isOn: appState.torchIsOn)
     }
     
     func makeCoordinator() -> Coordinator {
@@ -201,17 +200,17 @@ struct ARViewContainer: UIViewRepresentable {
             poseService.processFrame(frame, in: arView)
         }
         
-        func updateTorch(level: Float) {
+        func updateTorch(isOn: Bool) {
             // Access the camera device directly - AR sessions use the default back camera
             guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back) else {
                 print("Could not access back camera for torch control")
                 return
             }
             
-            configureTorch(device: device, level: level)
+            configureTorch(device: device, isOn: isOn)
         }
         
-        private func configureTorch(device: AVCaptureDevice, level: Float) {
+        private func configureTorch(device: AVCaptureDevice, isOn: Bool) {
             guard device.hasTorch else { 
                 print("Device does not have torch")
                 return 
@@ -219,11 +218,11 @@ struct ARViewContainer: UIViewRepresentable {
             
             do {
                 try device.lockForConfiguration()
-                if level > 0 {
+                if isOn {
                     if device.isTorchModeSupported(.on) {
                         device.torchMode = .on
-                        try device.setTorchModeOn(level: max(0.01, min(1.0, level)))
-                        print("Torch set to level: \(level)")
+                        try device.setTorchModeOn(level: 1.0) // Full brightness
+                        print("Torch turned on")
                     }
                 } else {
                     if device.isTorchModeSupported(.off) {
