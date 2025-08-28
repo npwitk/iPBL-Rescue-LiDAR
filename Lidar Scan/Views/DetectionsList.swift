@@ -322,8 +322,11 @@ struct EmptyDetectionsView: View {
 struct ExportSheet: View {
     let pins: [PersonPin]
     @Environment(\.presentationMode) var presentationMode
+    @EnvironmentObject var appState: AppState
+    @StateObject private var exportService = ExportService()
     @State private var isExporting = false
     @State private var exportMessage = ""
+    @State private var exportedURL: URL?
     
     var body: some View {
         NavigationView {
@@ -336,6 +339,7 @@ struct ExportSheet: View {
                         title: "Export as JSON",
                         description: "Export detection logs as JSON file",
                         icon: "doc.text",
+                        isLoading: isExporting,
                         action: exportJSON
                     )
                     
@@ -343,6 +347,7 @@ struct ExportSheet: View {
                         title: "Export World Map",
                         description: "Export AR world map (if available)",
                         icon: "map",
+                        isLoading: isExporting,
                         action: exportWorldMap
                     )
                     
@@ -350,6 +355,7 @@ struct ExportSheet: View {
                         title: "Export Summary",
                         description: "Export detection summary report",
                         icon: "chart.bar.doc.horizontal",
+                        isLoading: isExporting,
                         action: exportSummary
                     )
                 }
@@ -378,18 +384,96 @@ struct ExportSheet: View {
     }
     
     private func exportJSON() {
-        // Implementation would export detection data as JSON
-        exportMessage = "JSON export completed successfully"
+        guard !pins.isEmpty else {
+            exportMessage = "No detections to export"
+            return
+        }
+        
+        isExporting = true
+        exportMessage = ""
+        
+        Task {
+            do {
+                let url = try await exportService.exportDetectionsAsJSON(pins)
+                await MainActor.run {
+                    isExporting = false
+                    exportedURL = url
+                    exportMessage = "JSON exported successfully to:\n\(url.lastPathComponent)"
+                    print("JSON exported to: \(url.path)")
+                }
+            } catch {
+                await MainActor.run {
+                    isExporting = false
+                    exportMessage = "Export failed: \(error.localizedDescription)"
+                    print("Export error: \(error)")
+                }
+            }
+        }
     }
     
     private func exportWorldMap() {
-        // Implementation would export AR world map
-        exportMessage = "World map export completed successfully"
+        // Configure export service with ARMapper
+        if let arMapper = appState.arMapper as? ARMapper {
+            exportService.configure(with: arMapper)
+        } else {
+            exportMessage = "❌ AR Session not available"
+            return
+        }
+        
+        isExporting = true
+        exportMessage = ""
+        
+        Task {
+            do {
+                if let url = try await exportService.exportWorldMap() {
+                    await MainActor.run {
+                        isExporting = false
+                        exportedURL = url
+                        exportMessage = "✅ World map exported successfully to:\n\(url.lastPathComponent)"
+                        print("🗺️ World map exported to: \(url.path)")
+                    }
+                } else {
+                    await MainActor.run {
+                        isExporting = false
+                        exportMessage = "❌ World map not available - ensure you've been scanning"
+                    }
+                }
+            } catch {
+                await MainActor.run {
+                    isExporting = false
+                    exportMessage = "❌ Export failed: \(error.localizedDescription)"
+                    print("❌ World map export error: \(error)")
+                }
+            }
+        }
     }
     
     private func exportSummary() {
-        // Implementation would export detection summary
-        exportMessage = "Summary export completed successfully"
+        guard !pins.isEmpty else {
+            exportMessage = "No detections to summarize"
+            return
+        }
+        
+        isExporting = true
+        exportMessage = ""
+        
+        Task {
+            do {
+                let url = try await exportService.exportSummary(pins)
+                await MainActor.run {
+                    isExporting = false
+                    exportedURL = url
+                    exportMessage = "✅ Summary report exported successfully to:\n\(url.lastPathComponent)"
+                    print("📊 Summary exported to: \(url.path)")
+                }
+            } catch {
+                await MainActor.run {
+                    isExporting = false
+                    exportMessage = "❌ Export failed: \(error.localizedDescription)"
+                    print("❌ Summary export error: \(error)")
+                }
+            }
+        }
     }
 }
 
@@ -397,22 +481,29 @@ struct ExportButton: View {
     let title: String
     let description: String
     let icon: String
+    let isLoading: Bool
     let action: () -> Void
     
     var body: some View {
         Button(action: action) {
             HStack(spacing: 16) {
-                Image(systemName: icon)
-                    .font(.title2)
-                    .foregroundColor(.blue)
-                    .frame(width: 30)
+                if isLoading {
+                    ProgressView()
+                        .scaleEffect(0.8)
+                        .frame(width: 30)
+                } else {
+                    Image(systemName: icon)
+                        .font(.title2)
+                        .foregroundColor(.blue)
+                        .frame(width: 30)
+                }
                 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(title)
                         .font(.headline)
                         .foregroundColor(.primary)
                     
-                    Text(description)
+                    Text(isLoading ? "Exporting..." : description)
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }

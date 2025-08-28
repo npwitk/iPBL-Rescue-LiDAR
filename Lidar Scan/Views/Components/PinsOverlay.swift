@@ -10,6 +10,7 @@ struct PinsOverlay: View {
     let pins: [PersonPin]
     let selectedPinId: UUID?
     let geometrySize: CGSize
+    let arMapper: ARMapper?
     
     var body: some View {
         ZStack {
@@ -17,7 +18,8 @@ struct PinsOverlay: View {
                 PinMarker(
                     pin: pin,
                     isSelected: pin.id == selectedPinId,
-                    geometrySize: geometrySize
+                    geometrySize: geometrySize,
+                    arMapper: arMapper
                 )
             }
         }
@@ -28,6 +30,7 @@ struct PinMarker: View {
     @ObservedObject var pin: PersonPin
     let isSelected: Bool
     let geometrySize: CGSize
+    let arMapper: ARMapper?
     
     private var pinColor: Color {
         switch pin.stability {
@@ -41,10 +44,14 @@ struct PinMarker: View {
     }
     
     private var screenPosition: CGPoint {
-        // This is a simplified projection - in a real app, you'd need to 
-        // properly project 3D world coordinates to 2D screen coordinates
-        // using the current camera transform
-        CGPoint(
+        // Use proper 3D to 2D projection if ARMapper is available
+        if let arMapper = arMapper,
+           let projectedPosition = arMapper.projectToScreen(worldPosition: pin.worldPosition) {
+            return projectedPosition
+        }
+        
+        // Fallback to simplified projection (should rarely be used)
+        return CGPoint(
             x: geometrySize.width * 0.5 + CGFloat(pin.worldPosition.x * 50),
             y: geometrySize.height * 0.5 + CGFloat(pin.worldPosition.z * 50)
         )
@@ -134,7 +141,8 @@ struct PinMarker: View {
     return PinsOverlay(
         pins: samplePins,
         selectedPinId: samplePins[1].id,
-        geometrySize: CGSize(width: 400, height: 800)
+        geometrySize: CGSize(width: 400, height: 800),
+        arMapper: nil
     )
     .background(Color.blue.opacity(0.3))
 }

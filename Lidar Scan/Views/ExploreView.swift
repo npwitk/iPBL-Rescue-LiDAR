@@ -35,7 +35,7 @@ struct ExploreView: View {
                         Spacer()
                         
                         VStack(spacing: 16) {
-                            Image(systemName: "camera.circle")
+                            Image(systemName: "camera")
                                 .font(.system(size: 60))
                                 .foregroundColor(.white.opacity(0.6))
                             
@@ -43,7 +43,7 @@ struct ExploreView: View {
                                 .font(.title2.bold())
                                 .foregroundColor(.white)
                             
-                            Text("Press Start to begin scanning\nand person detection")
+                            Text("Press Start!!!!!!!!")
                                 .font(.body)
                                 .foregroundColor(.white.opacity(0.8))
                                 .multilineTextAlignment(.center)
@@ -89,7 +89,8 @@ struct ExploreView: View {
                 PinsOverlay(
                     pins: appState.pins,
                     selectedPinId: appState.selectedPinId,
-                    geometrySize: geometry.size
+                    geometrySize: geometry.size,
+                    arMapper: arMapper
                 )
                 
                 // Pose Skeleton Overlay

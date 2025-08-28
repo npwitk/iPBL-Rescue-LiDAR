@@ -24,9 +24,9 @@ enum PinStability: String, CaseIterable {
     
     var confidenceThreshold: Float {
         switch self {
-        case .singleFrame: return 0.3
-        case .multiFrame: return 0.5
-        case .corroborated: return 0.7
+        case .singleFrame: return 0.4
+        case .multiFrame: return 0.8
+        case .corroborated: return 0.9
         }
     }
 }

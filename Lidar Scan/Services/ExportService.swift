@@ -6,6 +6,7 @@
 import Foundation
 import ARKit
 import UniformTypeIdentifiers
+import UIKit
 
 class ExportService: ObservableObject {
     @Published var isExporting = false
@@ -207,7 +208,7 @@ class ExportService: ObservableObject {
     }
 }
 
-// MARK: - Export Data Models
+
 struct DetectionExportData: Codable {
     let exportDate: Date
     let totalDetections: Int

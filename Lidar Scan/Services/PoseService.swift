@@ -112,7 +112,7 @@ class PoseService: NSObject, ObservableObject {
     
     private func processPoseResults(_ results: [VNHumanBodyPoseObservation], frame: ARFrame, arView: ARView, viewportSize: CGSize) {
         for observation in results {
-            guard observation.confidence > 0.2 else { continue } // Lower threshold for better detection
+            guard observation.confidence > 0.5 else { continue } // Higher threshold to reduce false positives
             
             print("Person detected with confidence: \(observation.confidence)")
             
@@ -165,7 +165,7 @@ class PoseService: NSObject, ObservableObject {
         // Extract recognized joints
         for (visionJoint, jointName) in jointNames {
             if let recognizedPoint = try? observation.recognizedPoint(visionJoint),
-               recognizedPoint.confidence > 0.1 {
+               recognizedPoint.confidence > 0.3 {
                 joints[jointName] = recognizedPoint.location
             }
         }

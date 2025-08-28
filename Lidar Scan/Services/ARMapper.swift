@@ -92,27 +92,103 @@ class ARMapper: NSObject, ObservableObject {
         
         // 1. First try: Existing plane geometry (most accurate)
         if let query = arView.raycast(from: screenPoint, allowing: .existingPlaneGeometry, alignment: .any).first {
-            return simd_float3(query.worldTransform.columns.3.x,
-                              query.worldTransform.columns.3.y,
-                              query.worldTransform.columns.3.z)
+            let worldPos = simd_float3(query.worldTransform.columns.3.x,
+                                     query.worldTransform.columns.3.y,
+                                     query.worldTransform.columns.3.z)
+            
+            // Validate the position is within reasonable bounds
+            if isValidDetectionPosition(worldPos) {
+                return worldPos
+            }
         }
         
         // 2. Second try: Estimated planes (less accurate but more permissive)
         if let query = arView.raycast(from: screenPoint, allowing: .estimatedPlane, alignment: .any).first {
-            return simd_float3(query.worldTransform.columns.3.x,
-                              query.worldTransform.columns.3.y,
-                              query.worldTransform.columns.3.z)
+            let worldPos = simd_float3(query.worldTransform.columns.3.x,
+                                     query.worldTransform.columns.3.y,
+                                     query.worldTransform.columns.3.z)
+            
+            // Validate the position is within reasonable bounds
+            if isValidDetectionPosition(worldPos) {
+                return worldPos
+            }
         }
         
-        // 3. Final fallback: Use camera transform with estimated depth
-        let camera = arView.session.currentFrame?.camera
-        if let camera = camera {
-            // Estimate a position 2 meters in front of camera
-            let cameraTransform = camera.transform
-            let forward = simd_float3(-cameraTransform.columns.2.x, -cameraTransform.columns.2.y, -cameraTransform.columns.2.z)
-            let cameraPosition = simd_float3(cameraTransform.columns.3.x, cameraTransform.columns.3.y, cameraTransform.columns.3.z)
+        // Skip fallback for detections - we only want validated raycast hits
+        print("❌ Raycast failed for screen point \(screenPoint) - no valid surface found")
+        return nil
+    }
+    
+    private func isValidDetectionPosition(_ position: simd_float3) -> Bool {
+        guard let currentFrame = arView?.session.currentFrame else { return false }
+        
+        let cameraPosition = simd_float3(currentFrame.camera.transform.columns.3.x,
+                                        currentFrame.camera.transform.columns.3.y,
+                                        currentFrame.camera.transform.columns.3.z)
+        
+        let distance = simd_distance(position, cameraPosition)
+        
+        // Validate reasonable detection range (0.5m to 10m)
+        guard distance >= 0.5 && distance <= 10.0 else {
+            print("⚠️ Invalid detection distance: \(distance)m")
+            return false
+        }
+        
+        // Validate height relative to camera (person should be within reasonable height range)
+        let heightDiff = abs(position.y - cameraPosition.y)
+        guard heightDiff <= 3.0 else { // Max 3 meters height difference
+            print("⚠️ Invalid height difference: \(heightDiff)m")
+            return false
+        }
+        
+        // Check if position is within the explored area bounds
+        if let sessionBounds = appState?.currentSession?.meshBounds {
+            let margin: Float = 1.0 // 1 meter margin
+            let minBounds = sessionBounds.min - simd_float3(margin, margin, margin)
+            let maxBounds = sessionBounds.max + simd_float3(margin, margin, margin)
             
-            return cameraPosition + (forward * 2.0) // 2 meters forward
+            let inBounds = position.x >= minBounds.x && position.x <= maxBounds.x &&
+                          position.y >= minBounds.y && position.y <= maxBounds.y &&
+                          position.z >= minBounds.z && position.z <= maxBounds.z
+            
+            if !inBounds {
+                print("⚠️ Detection outside mapped area bounds")
+                return false
+            }
+        }
+        
+        return true
+    }
+    
+    // Convert 3D world position to 2D screen coordinates
+    func projectToScreen(worldPosition: simd_float3) -> CGPoint? {
+        guard let arView = arView,
+              let currentFrame = arView.session.currentFrame else { return nil }
+        
+        let camera = currentFrame.camera
+        let viewMatrix = camera.viewMatrix(for: .portrait)
+        let projectionMatrix = camera.projectionMatrix(for: .portrait, viewportSize: arView.bounds.size, zNear: 0.01, zFar: 1000)
+        
+        // Transform world position to camera space
+        let worldPos4 = simd_float4(worldPosition.x, worldPosition.y, worldPosition.z, 1.0)
+        let cameraPos = viewMatrix * worldPos4
+        
+        // Project to screen space
+        let projectedPos = projectionMatrix * cameraPos
+        
+        // Convert to normalized device coordinates
+        if projectedPos.w != 0 {
+            let ndc = simd_float2(projectedPos.x / projectedPos.w, projectedPos.y / projectedPos.w)
+            
+            // Convert to screen coordinates
+            let screenX = (ndc.x + 1.0) * 0.5 * Float(arView.bounds.width)
+            let screenY = (1.0 - ndc.y) * 0.5 * Float(arView.bounds.height)
+            
+            // Check if point is in front of camera and within screen bounds
+            if cameraPos.z < 0 && screenX >= 0 && screenX <= Float(arView.bounds.width) &&
+               screenY >= 0 && screenY <= Float(arView.bounds.height) {
+                return CGPoint(x: CGFloat(screenX), y: CGFloat(screenY))
+            }
         }
         
         return nil
@@ -155,6 +231,11 @@ class ARMapper: NSObject, ObservableObject {
                 }
             }
         }
+    }
+    
+    // Get current ARView bounds for screen projection
+    func getCurrentViewBounds() -> CGSize {
+        return arView?.bounds.size ?? CGSize(width: 390, height: 844) // Default iPhone size
     }
     
     private func updateDevicePath(_ transform: simd_float4x4) {
