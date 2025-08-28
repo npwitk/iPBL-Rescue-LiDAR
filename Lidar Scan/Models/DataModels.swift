@@ -207,6 +207,7 @@ class AppState: ObservableObject {
     
     // Service references  
     var arMapper: AnyObject?  // Using AnyObject to avoid circular imports
+    var multipeerService: MultipeerService?
     
     func setARMapper(_ mapper: AnyObject) {
         self.arMapper = mapper

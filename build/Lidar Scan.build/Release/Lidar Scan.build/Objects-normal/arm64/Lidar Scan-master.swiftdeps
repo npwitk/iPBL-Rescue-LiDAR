@@ -1,0 +1,65 @@
+version: "Apple Swift version 6.1.2 (swiftlang-6.1.2.1.2 clang-1700.0.13.5)"
+options: "3b98efae5eb850f61917dd5103ee1e1276ebc1eaa41d8957f96717aab7d9f690"
+build_start_time: [1756346196, 146946000]
+build_end_time: [1756346210, 362034000]
+inputs:
+  ? "/Users/npwitk/Library/Mobile Documents/com~apple~CloudDocs/School/Undergraduate Degree (SIIT) Archive/Year 3/SIIT-OIT/iPBL-Rescue-LiDAR/Lidar Scan/ContentView.swift"
+  : !dirty [1756346158, 137409774]
+  ? "/Users/npwitk/Library/Mobile Documents/com~apple~CloudDocs/School/Undergraduate Degree (SIIT) Archive/Year 3/SIIT-OIT/iPBL-Rescue-LiDAR/Lidar Scan/LidarScanApp.swift"
+  : !dirty [1756227400, 133969397]
+  ? "/Users/npwitk/Library/Mobile Documents/com~apple~CloudDocs/School/Undergraduate Degree (SIIT) Archive/Year 3/SIIT-OIT/iPBL-Rescue-LiDAR/Lidar Scan/Models/CommunicationModels.swift"
+  : !dirty [1756345994, 964257642]
+  ? "/Users/npwitk/Library/Mobile Documents/com~apple~CloudDocs/School/Undergraduate Degree (SIIT) Archive/Year 3/SIIT-OIT/iPBL-Rescue-LiDAR/Lidar Scan/Models/DataModels.swift"
+  : !dirty [1756291975, 277402573]
+  ? "/Users/npwitk/Library/Mobile Documents/com~apple~CloudDocs/School/Undergraduate Degree (SIIT) Archive/Year 3/SIIT-OIT/iPBL-Rescue-LiDAR/Lidar Scan/Modules/Capture 3D Scan/ARWrapperView.swift"
+  : !dirty [1756202267, 577303696]
+  ? "/Users/npwitk/Library/Mobile Documents/com~apple~CloudDocs/School/Undergraduate Degree (SIIT) Archive/Year 3/SIIT-OIT/iPBL-Rescue-LiDAR/Lidar Scan/Modules/Capture 3D Scan/Capture3DScanView.swift"
+  : !dirty [1756202267, 577418570]
+  ? "/Users/npwitk/Library/Mobile Documents/com~apple~CloudDocs/School/Undergraduate Degree (SIIT) Archive/Year 3/SIIT-OIT/iPBL-Rescue-LiDAR/Lidar Scan/Modules/View 3D Scans/SceneViewWrapper.swift"
+  : !dirty [1756202267, 577640986]
+  ? "/Users/npwitk/Library/Mobile Documents/com~apple~CloudDocs/School/Undergraduate Degree (SIIT) Archive/Year 3/SIIT-OIT/iPBL-Rescue-LiDAR/Lidar Scan/Modules/View 3D Scans/View3DScanViewModel.swift"
+  : !dirty [1756202267, 577737402]
+  ? "/Users/npwitk/Library/Mobile Documents/com~apple~CloudDocs/School/Undergraduate Degree (SIIT) Archive/Year 3/SIIT-OIT/iPBL-Rescue-LiDAR/Lidar Scan/Modules/View 3D Scans/View3DScansView.swift"
+  : !dirty [1756202267, 577890234]
+  ? "/Users/npwitk/Library/Mobile Documents/com~apple~CloudDocs/School/Undergraduate Degree (SIIT) Archive/Year 3/SIIT-OIT/iPBL-Rescue-LiDAR/Lidar Scan/Resources/Extensions.swift"
+  : !dirty [1756202267, 578757896]
+  ? "/Users/npwitk/Library/Mobile Documents/com~apple~CloudDocs/School/Undergraduate Degree (SIIT) Archive/Year 3/SIIT-OIT/iPBL-Rescue-LiDAR/Lidar Scan/Services/ARMapper.swift"
+  : !dirty [1756345069, 628141175]
+  ? "/Users/npwitk/Library/Mobile Documents/com~apple~CloudDocs/School/Undergraduate Degree (SIIT) Archive/Year 3/SIIT-OIT/iPBL-Rescue-LiDAR/Lidar Scan/Services/ExportService.swift"
+  : !dirty [1756287310, 181293993]
+  ? "/Users/npwitk/Library/Mobile Documents/com~apple~CloudDocs/School/Undergraduate Degree (SIIT) Archive/Year 3/SIIT-OIT/iPBL-Rescue-LiDAR/Lidar Scan/Services/PinTracker.swift"
+  : !dirty [1756286753, 730121696]
+  ? "/Users/npwitk/Library/Mobile Documents/com~apple~CloudDocs/School/Undergraduate Degree (SIIT) Archive/Year 3/SIIT-OIT/iPBL-Rescue-LiDAR/Lidar Scan/Services/PoseService.swift"
+  : !dirty [1756291231, 745967338]
+  ? "/Users/npwitk/Library/Mobile Documents/com~apple~CloudDocs/School/Undergraduate Degree (SIIT) Archive/Year 3/SIIT-OIT/iPBL-Rescue-LiDAR/Lidar Scan/Services/RobotCommunicationService.swift"
+  : !dirty [1756345610, 970864241]
+  ? "/Users/npwitk/Library/Mobile Documents/com~apple~CloudDocs/School/Undergraduate Degree (SIIT) Archive/Year 3/SIIT-OIT/iPBL-Rescue-LiDAR/Lidar Scan/StartView.swift"
+  : !dirty [1756202267, 578853020]
+  ? "/Users/npwitk/Library/Mobile Documents/com~apple~CloudDocs/School/Undergraduate Degree (SIIT) Archive/Year 3/SIIT-OIT/iPBL-Rescue-LiDAR/Lidar Scan/Views/Components/PinsOverlay.swift"
+  : !dirty [1756345100, 52912349]
+  ? "/Users/npwitk/Library/Mobile Documents/com~apple~CloudDocs/School/Undergraduate Degree (SIIT) Archive/Year 3/SIIT-OIT/iPBL-Rescue-LiDAR/Lidar Scan/Views/Components/TorchControl.swift"
+  : !dirty [1756276415, 853411597]
+  ? "/Users/npwitk/Library/Mobile Documents/com~apple~CloudDocs/School/Undergraduate Degree (SIIT) Archive/Year 3/SIIT-OIT/iPBL-Rescue-LiDAR/Lidar Scan/Views/Components/UIComponents.swift"
+  : !dirty [1756273405, 503913878]
+  ? "/Users/npwitk/Library/Mobile Documents/com~apple~CloudDocs/School/Undergraduate Degree (SIIT) Archive/Year 3/SIIT-OIT/iPBL-Rescue-LiDAR/Lidar Scan/Views/DetectionsList.swift"
+  : !dirty [1756291404, 297766980]
+  ? "/Users/npwitk/Library/Mobile Documents/com~apple~CloudDocs/School/Undergraduate Degree (SIIT) Archive/Year 3/SIIT-OIT/iPBL-Rescue-LiDAR/Lidar Scan/Views/ExploreView.swift"
+  : !dirty [1756345902, 883269953]
+  ? "/Users/npwitk/Library/Mobile Documents/com~apple~CloudDocs/School/Undergraduate Degree (SIIT) Archive/Year 3/SIIT-OIT/iPBL-Rescue-LiDAR/Lidar Scan/Views/MapView.swift"
+  : !dirty [1756286753, 687072034]
+  ? "/Users/npwitk/Library/Mobile Documents/com~apple~CloudDocs/School/Undergraduate Degree (SIIT) Archive/Year 3/SIIT-OIT/iPBL-Rescue-LiDAR/Lidar Scan/Views/iPad/DetectionsDashboardView.swift"
+  : !dirty [1756345963, 817217419]
+  ? "/Users/npwitk/Library/Mobile Documents/com~apple~CloudDocs/School/Undergraduate Degree (SIIT) Archive/Year 3/SIIT-OIT/iPBL-Rescue-LiDAR/Lidar Scan/Views/iPad/LiveMapView.swift"
+  : !dirty [1756345706, 832564368]
+  ? "/Users/npwitk/Library/Mobile Documents/com~apple~CloudDocs/School/Undergraduate Degree (SIIT) Archive/Year 3/SIIT-OIT/iPBL-Rescue-LiDAR/Lidar Scan/Views/iPad/MapControlPanels.swift"
+  : !dirty [1756345735, 948435909]
+  ? "/Users/npwitk/Library/Mobile Documents/com~apple~CloudDocs/School/Undergraduate Degree (SIIT) Archive/Year 3/SIIT-OIT/iPBL-Rescue-LiDAR/Lidar Scan/Views/iPad/MissionPlannerView.swift"
+  : !dirty [1756345846, 624727488]
+  ? "/Users/npwitk/Library/Mobile Documents/com~apple~CloudDocs/School/Undergraduate Degree (SIIT) Archive/Year 3/SIIT-OIT/iPBL-Rescue-LiDAR/Lidar Scan/Views/iPad/RobotControlView.swift"
+  : !dirty [1756345794, 544256027]
+  ? "/Users/npwitk/Library/Mobile Documents/com~apple~CloudDocs/School/Undergraduate Degree (SIIT) Archive/Year 3/SIIT-OIT/iPBL-Rescue-LiDAR/Lidar Scan/Views/iPad/RobotControllerApp.swift"
+  : !dirty [1756346143, 606885436]
+  ? "/Users/npwitk/Library/Mobile Documents/com~apple~CloudDocs/School/Undergraduate Degree (SIIT) Archive/Year 3/SIIT-OIT/iPBL-Rescue-LiDAR/Lidar Scan/Views/iPad/RobotControllerMainView.swift"
+  : !dirty [1756345971, 172087737]
+  ? "/Users/npwitk/Library/Mobile Documents/com~apple~CloudDocs/School/Undergraduate Degree (SIIT) Archive/Year 3/SIIT-OIT/iPBL-Rescue-LiDAR/build/Lidar Scan.build/Release/Lidar Scan.build/DerivedSources/GeneratedAssetSymbols.swift"
+  : !dirty [1756346194, 683697777]

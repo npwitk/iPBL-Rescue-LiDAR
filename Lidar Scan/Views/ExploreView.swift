@@ -13,9 +13,11 @@ struct ExploreView: View {
     @StateObject private var arMapper = ARMapper()
     @StateObject private var poseService = PoseService()
     @StateObject private var pinTracker = PinTracker()
+    @StateObject private var networkCoordinator = LocalNetworkCoordinator()
     
     @State private var showingPermissionAlert = false
     @State private var permissionMessage = ""
+    @State private var showingConnectionSheet = false
     
     var body: some View {
         GeometryReader { geometry in
@@ -61,6 +63,10 @@ struct ExploreView: View {
                     // Top Status Bar
                     HStack {
                         TrackingStatusView(trackingState: arMapper.trackingState)
+                        
+                        // Connection Status
+                        ConnectionStatusIndicator(state: networkCoordinator.connectionState)
+                        
                         Spacer()
                         SessionControlButton(
                             isRunning: appState.isSessionRunning,
@@ -74,6 +80,24 @@ struct ExploreView: View {
                     
                     // Bottom Controls
                     VStack(spacing: 16) {
+                        // Connection Status Button
+                        Button(action: {
+                            showingConnectionSheet = true
+                        }) {
+                            HStack(spacing: 8) {
+                                Circle()
+                                    .fill(getConnectionStatusColor())
+                                    .frame(width: 8, height: 8)
+                                Text("Controllers: \(networkCoordinator.connectedDevices.count)")
+                                    .font(.caption.bold())
+                            }
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(Color.black.opacity(0.7))
+                            .foregroundColor(.white)
+                            .cornerRadius(12)
+                        }
+                        
                         // Torch Control
                         TorchControl(isOn: $appState.torchIsOn)
                         
@@ -108,9 +132,27 @@ struct ExploreView: View {
         } message: {
             Text(permissionMessage)
         }
+        .sheet(isPresented: $showingConnectionSheet) {
+            RobotConnectionSheet()
+                .environmentObject(networkCoordinator)
+        }
         .onAppear {
             checkPermissions()
             appState.setARMapper(arMapper)
+            setupRobotCommunication()
+        }
+    }
+    
+    private func getConnectionStatusColor() -> Color {
+        switch networkCoordinator.connectionState {
+        case .connected:
+            return .green
+        case .connecting, .reconnecting:
+            return .orange
+        case .disconnected:
+            return .red
+        case .error:
+            return .red
         }
     }
     
@@ -138,6 +180,51 @@ struct ExploreView: View {
         
         // End the current scanning session
         appState.endCurrentSession()
+    }
+    
+    private func setupRobotCommunication() {
+        // MultipeerService is already initialized and started automatically
+        
+        // Start broadcasting robot status periodically
+        Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { _ in
+            broadcastRobotStatus()
+        }
+    }
+    
+    private func broadcastRobotStatus() {
+        guard appState.isSessionRunning else { return }
+        
+        let detectionUpdates = appState.pins.map { pin in
+            RobotStatusUpdate.DetectionUpdate(
+                id: pin.id.uuidString,
+                position: pin.worldPosition,
+                confidence: pin.confidence,
+                stability: pin.stability.rawValue,
+                age: pin.age,
+                isStale: pin.isStale
+            )
+        }
+        
+        let meshBounds = appState.currentSession?.meshBounds.map {
+            RobotStatusUpdate.MeshBounds(min: $0.min, max: $0.max)
+        }
+        
+        let robotPosition = arMapper.devicePath.last ?? SIMD3<Float>(0, 0, 0)
+        let robotOrientation = SIMD4<Float>(0, 0, 0, 1) // Simplified orientation
+        
+        let status = RobotStatusUpdate(
+            timestamp: Date(),
+            position: robotPosition,
+            orientation: robotOrientation,
+            batteryLevel: UIDevice.current.batteryLevel >= 0 ? UIDevice.current.batteryLevel : nil,
+            isScanning: appState.isSessionRunning,
+            detections: detectionUpdates,
+            devicePath: Array(arMapper.devicePath.suffix(100)), // Last 100 points
+            meshBounds: meshBounds,
+            connectionStrength: 0.8 // Simplified
+        )
+        
+        networkCoordinator.sendRobotStatus(status)
     }
     
     @discardableResult
