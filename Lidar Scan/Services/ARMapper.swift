@@ -22,6 +22,14 @@ class ARMapper: NSObject, ObservableObject {
     private var lastPathUpdate = Date()
     private weak var appState: AppState?
     
+    // Network streaming
+    private weak var networkService: NetworkService?
+    // Removed: Complex mesh compression service - now using direct raw data transmission
+    private let streamingConfig = StreamingConfiguration()
+    private var lastRobotPositionUpdate = Date()
+    private var lastMeshUpdate = Date()
+    private var processedMeshAnchors: Set<UUID> = []
+    
     // RoomPlan integration
     private var roomPlanAnchor: ARAnchor?
     
@@ -29,10 +37,11 @@ class ARMapper: NSObject, ObservableObject {
         super.init()
     }
     
-    func configure(with arView: ARView, frameDelegate: ARFrameDelegate, appState: AppState) {
+    func configure(with arView: ARView, frameDelegate: ARFrameDelegate, appState: AppState, networkService: NetworkService? = nil) {
         self.arView = arView
         self.frameDelegate = frameDelegate
         self.appState = appState
+        self.networkService = networkService
         
         session.delegate = self
         arView.session.delegate = self
@@ -256,6 +265,118 @@ class ARMapper: NSObject, ObservableObject {
                 devicePath.removeFirst(devicePath.count - 1000)
             }
         }
+        
+        // Stream robot position at higher frequency for real-time tracking
+        streamRobotPosition(transform)
+    }
+    
+    // MARK: - Network Streaming Methods
+    private func streamRobotPosition(_ transform: simd_float4x4) {
+        guard let networkService = networkService, networkService.isConnected else { return }
+        
+        let now = Date()
+        if now.timeIntervalSince(lastRobotPositionUpdate) >= streamingConfig.robotPositionInterval {
+            let position = simd_float3(transform.columns.3.x, transform.columns.3.y, transform.columns.3.z)
+            let rotation = simd_quatf(transform)
+            
+            networkService.sendRobotPosition(position, rotation: rotation)
+            lastRobotPositionUpdate = now
+        }
+    }
+    
+    private func streamMeshUpdate(_ meshAnchor: ARMeshAnchor) {
+        guard let networkService = networkService, networkService.isConnected else { return }
+        
+        let now = Date()
+        if now.timeIntervalSince(lastMeshUpdate) >= streamingConfig.meshUpdateInterval {
+            // Send raw mesh data directly - much simpler and more reliable
+            DispatchQueue.global(qos: .utility).async { [weak self] in
+                guard let self = self else { return }
+                
+                let geometry = meshAnchor.geometry
+                
+                // Safety checks
+                guard geometry.vertices.count > 0 && geometry.faces.count > 0 else {
+                    print("⚠️ Skipping empty mesh")
+                    return
+                }
+                
+                // Limit mesh size to prevent large data transmission
+                guard geometry.vertices.count < 5000 else {
+                    print("⚠️ Skipping large mesh (\(geometry.vertices.count) vertices)")
+                    return
+                }
+                
+                // Extract vertices directly
+                let vertexBufferPointer = geometry.vertices.buffer.contents().assumingMemoryBound(to: simd_float3.self)
+                let vertices = Array(UnsafeBufferPointer(start: vertexBufferPointer, count: geometry.vertices.count))
+                
+                // Extract faces directly
+                let faceBufferPointer = geometry.faces.buffer.contents().assumingMemoryBound(to: UInt32.self)
+                let faces = Array(UnsafeBufferPointer(start: faceBufferPointer, count: geometry.faces.count * 3))
+                
+                // Extract normals if available
+                var normals: [Float]? = nil
+                if geometry.normals.count > 0 &&
+                   geometry.normals.buffer.length >= geometry.normals.count * MemoryLayout<simd_float3>.size {
+                    let normalBufferPointer = geometry.normals.buffer.contents().assumingMemoryBound(to: simd_float3.self)
+                    let normalVectors = Array(UnsafeBufferPointer(start: normalBufferPointer, count: geometry.normals.count))
+                    normals = normalVectors.flatMap { [$0.x, $0.y, $0.z] }
+                }
+                
+                // Convert transform matrix to array
+                let transform = meshAnchor.transform
+                let transformArray: [Float] = [
+                    transform.columns.0.x, transform.columns.0.y, transform.columns.0.z, transform.columns.0.w,
+                    transform.columns.1.x, transform.columns.1.y, transform.columns.1.z, transform.columns.1.w,
+                    transform.columns.2.x, transform.columns.2.y, transform.columns.2.z, transform.columns.2.w,
+                    transform.columns.3.x, transform.columns.3.y, transform.columns.3.z, transform.columns.3.w
+                ]
+                
+                // Create simple message with raw data
+                let message = MeshUpdateMessage(
+                    anchorId: meshAnchor.identifier.uuidString,
+                    vertices: vertices.flatMap { [$0.x, $0.y, $0.z] },
+                    normals: normals,
+                    faces: faces,
+                    transform: transformArray,
+                    timestamp: Date(),
+                    vertexCount: vertices.count
+                )
+                
+                // Send on background queue
+                networkService.sendMessage(.meshUpdate(message))
+                
+                // Update tracking on main queue
+                DispatchQueue.main.async {
+                    self.processedMeshAnchors.insert(meshAnchor.identifier)
+                }
+            }
+            lastMeshUpdate = now
+        }
+    }
+    
+    func streamPersonDetection(_ pin: PersonPin) {
+        guard let networkService = networkService, networkService.isConnected else { return }
+        
+        // Send on background queue to avoid blocking
+        DispatchQueue.global(qos: .utility).async {
+            networkService.sendPersonDetection(pin)
+        }
+    }
+    
+    func startNetworkSession() {
+        guard let networkService = networkService, networkService.isConnected,
+              let sessionId = appState?.currentSession?.sessionId else { return }
+        
+        networkService.sendSessionStart(sessionId: sessionId.uuidString)
+    }
+    
+    func endNetworkSession() {
+        guard let networkService = networkService, networkService.isConnected,
+              let session = appState?.currentSession else { return }
+        
+        networkService.sendSessionEnd(sessionId: session.sessionId.uuidString, totalDetections: session.detectedPins.count)
     }
 }
 
@@ -280,6 +401,10 @@ extension ARMapper: ARSessionDelegate {
                 DispatchQueue.main.async {
                     self.meshAnchors.append(meshAnchor)
                 }
+                // Stream new mesh data to Mac (with safety check)
+                if networkService?.isConnected == true {
+                    streamMeshUpdate(meshAnchor)
+                }
             }
         }
     }
@@ -291,6 +416,10 @@ extension ARMapper: ARSessionDelegate {
                     if let index = self.meshAnchors.firstIndex(where: { $0.identifier == meshAnchor.identifier }) {
                         self.meshAnchors[index] = meshAnchor
                     }
+                }
+                // Stream updated mesh data to Mac (only if not already processed recently)
+                if networkService?.isConnected == true && !processedMeshAnchors.contains(meshAnchor.identifier) {
+                    streamMeshUpdate(meshAnchor)
                 }
             }
         }

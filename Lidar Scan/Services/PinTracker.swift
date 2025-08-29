@@ -83,6 +83,9 @@ class PinTracker: ObservableObject {
             }
         }
         
+        // Stream person detection update to Mac
+        arMapper?.streamPersonDetection(pin)
+        
         // Trigger haptic feedback on stability promotion
         if pin.stability != previousStability && pin.stability.rawValue > previousStability.rawValue {
             DispatchQueue.main.async {
@@ -102,6 +105,9 @@ class PinTracker: ObservableObject {
         
         // Add to current session
         appState?.currentSession?.addPin(newPin)
+        
+        // Stream new person detection to Mac
+        arMapper?.streamPersonDetection(newPin)
         
         print("Created new pin at \(worldPosition)")
     }

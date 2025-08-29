@@ -13,6 +13,8 @@ struct ExploreView: View {
     @StateObject private var arMapper = ARMapper()
     @StateObject private var poseService = PoseService()
     @StateObject private var pinTracker = PinTracker()
+    @StateObject private var networkService = NetworkService()
+    @StateObject private var streamingStats = StreamingStats()
     
     @State private var showingPermissionAlert = false
     @State private var permissionMessage = ""
@@ -25,7 +27,8 @@ struct ExploreView: View {
                     arMapper: arMapper,
                     poseService: poseService,
                     pinTracker: pinTracker,
-                    appState: appState
+                    appState: appState,
+                    networkService: networkService
                 )
                 .ignoresSafeArea(.all)
                 
@@ -69,6 +72,16 @@ struct ExploreView: View {
                     }
                     .padding(.horizontal)
                     .padding(.top, 10)
+                    
+                    // Network Controls
+                    HStack {
+                        NetworkControlsView(
+                            networkService: networkService,
+                            streamingStats: streamingStats
+                        )
+                        Spacer()
+                    }
+                    .padding(.horizontal)
                     
                     Spacer()
                     
@@ -130,9 +143,15 @@ struct ExploreView: View {
         
         arMapper.startSession()
         poseService.startProcessing()
+        
+        // Start network session if connected
+        arMapper.startNetworkSession()
     }
     
     private func stopSession() {
+        // End network session first
+        arMapper.endNetworkSession()
+        
         arMapper.stopSession()
         poseService.stopProcessing()
         
@@ -181,6 +200,7 @@ struct ARViewContainer: UIViewRepresentable {
     let poseService: PoseService
     let pinTracker: PinTracker
     let appState: AppState
+    let networkService: NetworkService
     
     func makeUIView(context: Context) -> ARView {
         let arView = ARView(frame: .zero)
@@ -191,7 +211,8 @@ struct ARViewContainer: UIViewRepresentable {
         
         // Setup services
         let coordinator = context.coordinator
-        arMapper.configure(with: arView, frameDelegate: coordinator, appState: appState)
+        coordinator.networkService = networkService
+        arMapper.configure(with: arView, frameDelegate: coordinator, appState: appState, networkService: networkService)
         poseService.configure(with: pinTracker)
         pinTracker.configure(with: arMapper, appState: appState)
         
@@ -213,6 +234,7 @@ struct ARViewContainer: UIViewRepresentable {
         private var arView: ARView?
         private var arMapper: ARMapper?
         private var poseService: PoseService?
+        var networkService: NetworkService?
         
         func setup(arView: ARView, arMapper: ARMapper, poseService: PoseService) {
             self.arView = arView
